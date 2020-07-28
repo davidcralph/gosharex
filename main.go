@@ -24,10 +24,31 @@ func setupRouter() *gin.Engine {
 			c.JSON(401, gin.H{"message": "Invalid token!"})
 			return
 		}
+
 		file, _ := c.FormFile("file")
 		filename := randomstring.New() + "." + strings.Split(file.Filename, ".")[1] // Create random filename...
 		c.SaveUploadedFile(file, "./uploads/"+filename)                             // ...and move the file to ./uploads/
 		c.JSON(200, gin.H{"file": filename})
+	})
+
+	router.GET("/delete", func(c *gin.Context) {
+		if c.Request.Header.Get("Authorization") != os.Getenv("SECRET") { // Make sure the token is correct
+			c.JSON(401, gin.H{"message": "Invalid token!"})
+			return
+		}
+
+		if len(c.Query("file")) < 1 { // Check for empty file query
+			c.JSON(401, gin.H{"message": "Missing \"file\" query!"})
+			return
+		}
+
+		if _, err := os.Stat("./uploads/" + c.Query("file")); os.IsNotExist(err) { // Make sure file exists
+			c.JSON(404, gin.H{"message": "File doesn't exist!"})
+			return
+		}
+
+		os.Remove("./uploads/" + c.Query("file")) // Delete file
+		c.JSON(200, gin.H{"message": "Deleted successfully"})
 	})
 
 	router.GET("/stats", func(c *gin.Context) { // File count etc

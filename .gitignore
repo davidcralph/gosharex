@@ -1,2 +1,6 @@
-.env
+# Folders
 uploads/
+
+# Files
+.env
+main.exe
