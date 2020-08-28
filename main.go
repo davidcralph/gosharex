@@ -1,9 +1,11 @@
 package main
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bramvdbogaerde/go-randomstring"
 	"github.com/gin-contrib/static"
@@ -12,8 +14,16 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+var startTime = time.Now()
+
 func setupRouter() *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+
+	if os.Getenv("LOGGING") == "true" {
+		router.Use(gin.Logger())
+		f, _ := os.Create("gin.log")
+		gin.DefaultWriter = io.MultiWriter(f)
+	}
 
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "gotta go fast"})
@@ -27,7 +37,7 @@ func setupRouter() *gin.Engine {
 
 		file, _ := c.FormFile("file")
 		filename := randomstring.New() + "." + strings.Split(file.Filename, ".")[1] // Create random filename...
-		c.SaveUploadedFile(file, "./uploads/"+filename)                             // ...and move the file to ./uploads/
+		c.SaveUploadedFile(file, os.Getenv("FOLDER")+filename)                      // ...and move the file to ./uploads/
 		c.JSON(200, gin.H{"file": filename})
 	})
 
@@ -38,33 +48,33 @@ func setupRouter() *gin.Engine {
 		}
 
 		if len(c.Query("file")) < 1 { // Check for empty file query
-			c.JSON(401, gin.H{"message": "Missing \"file\" query!"})
+			c.JSON(400, gin.H{"message": "Missing \"file\" query!"})
 			return
 		}
 
-		if _, err := os.Stat("./uploads/" + c.Query("file")); os.IsNotExist(err) { // Make sure file exists
+		if _, err := os.Stat(os.Getenv("FOLDER") + c.Query("file")); os.IsNotExist(err) { // Make sure file exists
 			c.JSON(404, gin.H{"message": "File doesn't exist!"})
 			return
 		}
 
-		os.Remove("./uploads/" + c.Query("file")) // Delete file
+		os.Remove(os.Getenv("FOLDER") + c.Query("file")) // Delete file
 		c.JSON(200, gin.H{"message": "Deleted successfully"})
 	})
 
 	router.GET("/stats", func(c *gin.Context) { // File count etc
-		files, _ := ioutil.ReadDir("./uploads")
-		c.JSON(200, gin.H{"fileCount": len(files)})
+		files, _ := ioutil.ReadDir(os.Getenv("FOLDER"))
+		c.JSON(200, gin.H{"fileCount": len(files), "uptime": time.Since(startTime)})
 	})
 
-	router.Use(static.Serve("/", static.LocalFile("./uploads", true))) // Static files in ./uploads/
+	router.Use(static.Serve("/", static.LocalFile(os.Getenv("FOLDER"), true))) // Static files in ./uploads/
 
 	return router
 }
 
 func main() {
 	// Create ./uploads if it doesn't already exist
-	if _, err := os.Stat("./uploads/"); os.IsNotExist(err) {
-		os.Mkdir("./uploads/", 777)
+	if _, err := os.Stat(os.Getenv("FOLDER")); os.IsNotExist(err) {
+		os.Mkdir(os.Getenv("FOLDER"), 777)
 	}
 
 	// Start webserver

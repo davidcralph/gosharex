@@ -3,4 +3,5 @@ uploads/
 
 # Files
 .env
+gin.log
 main.exe
