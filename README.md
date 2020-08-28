@@ -7,7 +7,7 @@ Environment Variables
 ```
 SECRET = "1234"
 PORT = ":8080"
-FOLDER = "./uploads"
+FOLDER = "./uploads/"
 LOGGING = "true"
 ```
 
