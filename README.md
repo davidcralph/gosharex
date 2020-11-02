@@ -6,9 +6,11 @@ I made this as part of learning Go, so it's probably bad code. I don't recommend
 Environment Variables
 ```
 SECRET = "1234"
-PORT = ":8080"
+PORT = 8080
 FOLDER = "./uploads/"
 LOGGING = "true"
+SIZE_LIMIT_ENABLED = "true"
+SIZE_LIMIT = 1000
 ```
 
 ## License
