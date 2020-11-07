@@ -37,11 +37,13 @@ func setupRouter() *gin.Engine {
 		}
 
 		file, _ := c.FormFile("file")
+
 		sizelimit, _ := strconv.ParseInt(os.Getenv("SIZE_LIMIT"), 10, 64)
 		if os.Getenv("SIZE_LIMIT_ENABLED") == "true" && file.Size > sizelimit { // size limit
 			c.JSON(413, gin.H{"message": "File too large!"})
 			return
 		}
+
 		filename := randomstring.New() + "." + strings.Split(file.Filename, ".")[1] // Create random filename...
 		c.SaveUploadedFile(file, os.Getenv("FOLDER")+filename)                      // ...and move the file to the uploads folder
 		c.JSON(200, gin.H{"file": filename})
