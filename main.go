@@ -11,6 +11,7 @@ import (
 	"github.com/bramvdbogaerde/go-randomstring"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	ratelimit "github.com/zcong1993/gin-ratelimit"
 
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -26,13 +27,20 @@ func setupRouter() *gin.Engine {
 		gin.DefaultWriter = io.MultiWriter(f)
 	}
 
+	if os.Getenv("RATELIMIT") == "true" {
+		duration, _ := strconv.ParseInt(os.Getenv("RATELIMIT_DURATION"), 10, 64)
+		count, _ := strconv.ParseInt(os.Getenv("RATELIMIT_COUNT"), 10, 64)
+
+		router.Use(ratelimit.New(ratelimit.Config{Duration: duration, RateLimit: count}))
+	}
+
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "gotta go fast"})
+		c.JSON(200, gin.H{"message": "Hello World"})
 	})
 
 	router.POST("/upload", func(c *gin.Context) {
 		if c.Request.Header.Get("Authorization") != os.Getenv("SECRET") { // Make sure the token is correct
-			c.JSON(401, gin.H{"message": "Invalid token!"})
+			c.JSON(401, gin.H{"message": "Invalid token"})
 			return
 		}
 
@@ -40,7 +48,7 @@ func setupRouter() *gin.Engine {
 
 		sizelimit, _ := strconv.ParseInt(os.Getenv("SIZE_LIMIT"), 10, 64)
 		if os.Getenv("SIZE_LIMIT_ENABLED") == "true" && file.Size > sizelimit { // size limit
-			c.JSON(413, gin.H{"message": "File too large!"})
+			c.JSON(413, gin.H{"message": "File too large"})
 			return
 		}
 
@@ -51,17 +59,17 @@ func setupRouter() *gin.Engine {
 
 	router.GET("/delete", func(c *gin.Context) {
 		if c.Request.Header.Get("Authorization") != os.Getenv("SECRET") { // Make sure the token is correct
-			c.JSON(401, gin.H{"message": "Invalid token!"})
+			c.JSON(401, gin.H{"message": "Invalid token"})
 			return
 		}
 
 		if len(c.Query("file")) < 1 { // Check for empty file query
-			c.JSON(400, gin.H{"message": "Missing \"file\" query!"})
+			c.JSON(400, gin.H{"message": "Missing \"file\" query"})
 			return
 		}
 
 		if _, err := os.Stat(os.Getenv("FOLDER") + c.Query("file")); os.IsNotExist(err) { // Make sure file exists
-			c.JSON(404, gin.H{"message": "File doesn't exist!"})
+			c.JSON(404, gin.H{"message": "File doesn't exist"})
 			return
 		}
 
@@ -75,6 +83,19 @@ func setupRouter() *gin.Engine {
 	})
 
 	router.Use(static.Serve("/", static.LocalFile(os.Getenv("FOLDER"), true))) // Static files in ./uploads/
+
+	if os.Getenv("WEB") == "true" {
+		router.LoadHTMLGlob("templates/*")
+
+		router.GET("/web", func(c *gin.Context) {
+			c.HTML(200, "index.tmpl", gin.H{})
+		})
+
+		router.GET("/web/stats", func(c *gin.Context) {
+			files, _ := ioutil.ReadDir(os.Getenv("FOLDER"))
+			c.HTML(200, "stats.tmpl", gin.H{"fileCount": len(files), "uptime": time.Since(startTime)})
+		})
+	}
 
 	return router
 }
