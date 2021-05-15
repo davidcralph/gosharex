@@ -6,3 +6,4 @@ uploads/
 .env
 gin.log
 main.exe
+config.example.yml

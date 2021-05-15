@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bramvdbogaerde/go-randomstring"
+	"davidjcralph.co.uk/gosharex/util"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	ratelimit "github.com/zcong1993/gin-ratelimit"
@@ -52,8 +52,8 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		filename := randomstring.New() + "." + strings.Split(file.Filename, ".")[1] // Create random filename...
-		c.SaveUploadedFile(file, os.Getenv("FOLDER")+filename)                      // ...and move the file to the uploads folder
+		filename := util.RandomString(4) + "." + strings.Split(file.Filename, ".")[1] // Create random filename...
+		c.SaveUploadedFile(file, os.Getenv("FOLDER")+filename)                        // ...and move the file to the uploads folder
 		c.JSON(200, gin.H{"file": filename})
 	})
 
@@ -82,18 +82,20 @@ func setupRouter() *gin.Engine {
 		c.JSON(200, gin.H{"fileCount": len(files), "uptime": time.Since(startTime)})
 	})
 
-	router.Use(static.Serve("/", static.LocalFile(os.Getenv("FOLDER"), true))) // Static files in ./uploads/
+	router.Use(static.Serve("/web", static.LocalFile(os.Getenv("FOLDER"), true))) // Static files in ./uploads/
 
 	if os.Getenv("WEB") == "true" {
-		router.LoadHTMLGlob("templates/*")
+		router.LoadHTMLGlob("web/templates/*")
+
+		router.Use(static.Serve("/", static.LocalFile("/web/*/*", true))) // Static files in ./uploads/
 
 		router.GET("/web", func(c *gin.Context) {
-			c.HTML(200, "index.tmpl", gin.H{})
+			c.HTML(200, "index.njk", gin.H{})
 		})
 
 		router.GET("/web/stats", func(c *gin.Context) {
 			files, _ := ioutil.ReadDir(os.Getenv("FOLDER"))
-			c.HTML(200, "stats.tmpl", gin.H{"fileCount": len(files), "uptime": time.Since(startTime)})
+			c.HTML(200, "stats.njk", gin.H{"fileCount": len(files), "uptime": time.Since(startTime)})
 		})
 	}
 
@@ -103,7 +105,7 @@ func setupRouter() *gin.Engine {
 func main() {
 	// Create ./uploads if it doesn't already exist
 	if _, err := os.Stat(os.Getenv("FOLDER")); os.IsNotExist(err) {
-		os.Mkdir(os.Getenv("FOLDER"), 777)
+		os.Mkdir(os.Getenv("FOLDER"), 0777)
 	}
 
 	// Start webserver
