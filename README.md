@@ -9,4 +9,4 @@ I made this as part of learning Go, so it's probably bad code. I don't recommend
 3. Either run the server with ``go run main.go`` or build with ``go build main.go`` and run the binary
 
 ## License
-[MIT](https://github.com/davidjcralph/gosharex/blob/main/LICENSE)
+[MIT](LICENSE)

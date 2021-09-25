@@ -1,4 +1,4 @@
-module davidjcralph.co.uk/gosharex
+module davidcralph.co.uk/gosharex
 
 go 1.14
 
@@ -9,4 +9,4 @@ require (
 	github.com/zcong1993/gin-ratelimit v0.0.0-20201103092833-69c87ffc6f97 // direct
 )
 
-replace davidjcralph.co.uk/gosharex/util => ./util/
+replace davidcralph.co.uk/gosharex/util => ./util/
